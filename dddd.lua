@@ -55,7 +55,7 @@ local function GetOptimalBoost(worldFolder)
     return nil
 end
 
-local function FastTeleport(target)
+local function InstantTeleport(target)
     if not target or not target.PrimaryPart then 
         return false 
     end
@@ -72,47 +72,67 @@ local function FastTeleport(target)
         return false 
     end
     
-    -- Мгновенная телепортация без анимации
+    -- Отключаем физику для мгновенной телепортации
+    HumanoidRootPart.Anchored = true
+    
+    -- Мгновенная телепортация
     local targetCFrame = target.PrimaryPart.CFrame
     HumanoidRootPart.CFrame = targetCFrame
     
-    -- Принудительное обновление позиции
+    -- Полная остановка движения
     HumanoidRootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
     HumanoidRootPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+    
+    -- Принудительное обновление сети
+    RunService.Heartbeat:Wait()
+    
+    -- Включаем физику обратно
+    HumanoidRootPart.Anchored = false
     
     return true
 end
 
-local function CollectBoost(boost)
+local function InstantCollect(boost)
     if not boost or not boost.PrimaryPart then 
         return 
     end
     
-    -- Быстрая телепортация
-    if not FastTeleport(boost) then 
+    -- Мгновенная телепортация
+    if not InstantTeleport(boost) then 
         return 
     end
     
-    -- Мгновенная активация касания
-    local success = pcall(function()
-        firetouchinterest(HumanoidRootPart, boost.PrimaryPart, 0)
-        firetouchinterest(HumanoidRootPart, boost.PrimaryPart, 1)
+    -- Немедленная активация касания без задержек
+    pcall(function()
+        -- Множественная активация для гарантии
+        for i = 1, 3 do
+            firetouchinterest(HumanoidRootPart, boost.PrimaryPart, 0)
+            firetouchinterest(HumanoidRootPart, boost.PrimaryPart, 1)
+        end
     end)
     
-    return success
+    return true
 end
 
---// Optimized Main Loop \\--
+--// Ultra-Fast Main Loop \\--
 while wait(Delay) do
+    -- Проверяем персонажа один раз за итерацию
+    if not Character or not Character.Parent then
+        Character = Player.Character
+        if Character then
+            HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+        end
+    end
+    
     local Current_World = Boosts[World.Value]
     
-    if Current_World then
+    if Current_World and HumanoidRootPart then
         -- Получаем оптимальный буст (кэшированный и отсортированный)
         local Collectable = GetOptimalBoost(Current_World)
         
         -- Собираем буст если найден
         if Collectable then
-            CollectBoost(Collectable)
+            InstantCollect(Collectable)
         end
     end
     
